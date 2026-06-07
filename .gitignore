@@ -1,5 +1,16 @@
+# Environment
 .env
 .env~
+
+# Python
 venv/
 __pycache__/
 *.pyc
+
+# PDFs — store locally, don't commit to git
+docmind/data/*.pdf
+experiments/text_analyzer.py
+
+# FAISS index if you save it later
+*.faiss
+*.pkl
