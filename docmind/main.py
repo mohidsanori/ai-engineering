@@ -102,12 +102,14 @@ def ask(question, vector_store, client, all_chunks):
             {
                 "role": "system",
                 "content": """You are a research paper assistant. 
-                Answer questions using ONLY the provided context from the paper.
-                If the answer is not in the context, say 'This information is not in the provided context.'
-                Always be precise and cite specific details from the context.""",
+            Answer questions using ONLY the provided context from the paper.
+            If the answer is not in the context, say 'This information is not in the provided context.'
+            Always be precise and cite specific details from the context.""",
             },
             {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {question}"},
         ],
+        temperature=0.1,
+        max_tokens=500,
     )
 
     answer = response.choices[0].message.content
