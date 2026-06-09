@@ -1,13 +1,15 @@
+import os
+import glob
+from dotenv import load_dotenv
+
+load_dotenv()
+
+from langfuse.decorators import observe, langfuse_context
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 from groq import Groq
-from dotenv import load_dotenv
-import os
-import glob
-
-load_dotenv()
 
 DATA_DIR = "docmind/data"
 
@@ -60,16 +62,14 @@ def create_vector_store(chunks):
     return vector_store
 
 
+@observe(as_type="generation")
 def ask(question, vector_store, client, all_chunks):
-    # Semantic search results
     relevant_chunks = vector_store.max_marginal_relevance_search(
         question, k=4, fetch_k=10
     )
 
-    # Always inject page 1 chunks (abstract/intro)
     page_1_chunks = [c for c in all_chunks if c.metadata.get("page", -1) == 0]
 
-    # Combine — page 1 first, then semantic results, remove duplicates
     seen = set()
     combined = []
     for chunk in page_1_chunks + relevant_chunks:
@@ -102,9 +102,9 @@ def ask(question, vector_store, client, all_chunks):
             {
                 "role": "system",
                 "content": """You are a research paper assistant. 
-            Answer questions using ONLY the provided context from the paper.
-            If the answer is not in the context, say 'This information is not in the provided context.'
-            Always be precise and cite specific details from the context.""",
+                Answer questions using ONLY the provided context from the paper.
+                If the answer is not in the context, say 'This information is not in the provided context.'
+                Always be precise and cite specific details from the context.""",
             },
             {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {question}"},
         ],
@@ -113,6 +113,21 @@ def ask(question, vector_store, client, all_chunks):
     )
 
     answer = response.choices[0].message.content
+    langfuse_context.update_current_observation(
+        input=question,
+        output=answer,
+        model="llama-3.1-8b-instant",
+        usage={
+            "input": response.usage.prompt_tokens,
+            "output": response.usage.completion_tokens,
+            "total": response.usage.total_tokens,
+        },
+        metadata={
+            "chunks_retrieved": len(combined),
+            "sources": sources,
+            "context_preview": context[:500],
+        },
+    )
     return answer, sources
 
 
@@ -135,3 +150,5 @@ if __name__ == "__main__":
         print(f"\nAnswer: {answer}")
         print(f"Sources: {', '.join(sources)}\n")
         print("-" * 50)
+
+    langfuse_context.flush()
