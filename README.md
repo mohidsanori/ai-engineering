@@ -15,6 +15,12 @@ fluctuations had the same stress response as norepinephrine levels.
 The BIS did not show any stress response during tracheal intubation.
 Sources: Page 1, Page 6, Page 7
 
+## Observability
+
+Every question is traced in Langfuse — token usage, latency, retrieved chunks, and cost per query.
+
+![Langfuse trace](docs/langfuse-trace.png)
+
 ## How it works
 
 PDF
@@ -32,6 +38,8 @@ Question vector
 page 1 always included (abstract)
 ↓ Groq LLaMA 3.1 8b (temperature=0.1)
 Grounded answer + source page numbers
+↓ Langfuse
+Every question traced — tokens, latency, retrieved chunks, cost
 
 ## Stack
 
@@ -40,6 +48,7 @@ Grounded answer + source page numbers
 - **FAISS** — vector store and semantic search
 - **Groq** — fast LLM inference (free tier)
 - **LLaMA 3.1 8b** — the language model
+- **Langfuse** — observability, token tracking, and trace monitoring
 
 ## Setup
 
@@ -50,7 +59,7 @@ python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
-# add your GROQ_API_KEY to .env
+# add your GROQ_API_KEY, LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY to .env
 ```
 
 ## Usage
@@ -72,7 +81,7 @@ ai-engineering/
 │ └── text_analyzer.py ← first LLM call, Groq + structured JSON output
 ├── docmind/
 │ ├── data/ ← drop PDFs here (gitignored)
-│ └── main.py ← RAG pipeline
+│ └── main.py ← RAG pipeline with Langfuse observability
 ├── .env.example
 ├── .gitignore
 └── README.md
@@ -84,10 +93,11 @@ ai-engineering/
 - How MMR search produces more diverse and useful results than basic similarity search
 - How temperature controls hallucination in LLM outputs
 - Why always injecting the abstract fixes broad questions like "what is this about"
+- How observability works in production AI systems — tracing every retrieval and LLM call with Langfuse
 
 ## What's next
 
+- [x] Langfuse observability — token tracking, latency, trace monitoring
 - [ ] Save and reload FAISS index (skip rebuilding on same PDF)
 - [ ] Add conversation memory for follow-up questions
-- [ ] Add Langfuse for observability — trace every retrieval and LLM call
 - [ ] Support multiple PDFs in one session
